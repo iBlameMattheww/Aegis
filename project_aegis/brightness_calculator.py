@@ -20,6 +20,6 @@ class BrightnessCalculator:
         if RPM_LOW <= rpm <= RPM_HIGH:
             x = rpm / RPM_HIGH
             y = throttle / 100
-            return int(255 * ((0.7 * x) + (0.3 * y)))
+            return int(255 * ((0.6 * x) + (0.4 * y)))
         
         return 255  # Max brightness
