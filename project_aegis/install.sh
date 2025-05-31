@@ -14,9 +14,10 @@ cd Aegis/project_aegis
 
 # [3/5] Set up virtual environment in ~/
 echo "[3/5] Creating virtual environment..."
-cd ~
+cd ~/Aegis/project_aegis
 python3 -m venv venv
 source venv/bin/activate
+
 
 # [4/5] Install required Python packages
 echo "[4/5] Installing required Python packages..."
