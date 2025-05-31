@@ -1,4 +1,5 @@
 #!/bin/bash
+#Author: iBlameMattheww
 
 echo "[Reactive Badge Installer] Starting installation..."
 
