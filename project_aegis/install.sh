@@ -34,7 +34,7 @@ Description=Reactive Badge Startup
 After=network.target
 
 [Service]
-ExecStart=/home/pi/venv/bin/python3 /home/pi/Aegis/project_aegis/main.py
+ExecStart=sudo /home/pi/Aegis/project_aegis/venv/bin/python3 /home/pi/Aegis/project_aegis/main.py
 WorkingDirectory=/home/pi/Aegis/project_aegis
 StandardOutput=inherit
 StandardError=inherit
@@ -44,6 +44,7 @@ User=pi
 [Install]
 WantedBy=multi-user.target
 EOF
+
 
 # Finalize setup
 sudo systemctl daemon-reexec
