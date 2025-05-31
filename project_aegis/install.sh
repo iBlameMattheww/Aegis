@@ -22,14 +22,14 @@ pip install rpi_ws281x adafruit-circuitpython-neopixel adafruit-blinka obd RPi.G
 echo "[4/5] Setting up systemd service..."
 SERVICE_PATH="/etc/systemd/system/project_aegis.service"
 
-sudo bash -c "cat > $SERVICE_PATH" << EOF
+sudo bash -c "cat > $SERVICE_PATH" <<EOF
 [Unit]
-Description= Reactive Badge Startup
+Description=Reactive Badge Startup
 After=network.target
 
 [Service]
-ExecStart=/home/pi/project_aegis/venv/bin/python3 /home/pi/project_aegis/main.py
-WorkingDirectory=/home/pi/project_aegis
+ExecStart=/home/pi/Aegis/project_aegis/venv/bin/python3 /home/pi/Aegis/project_aegis/main.py
+WorkingDirectory=/home/pi/Aegis/project_aegis
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
@@ -38,6 +38,7 @@ User=pi
 [Install]
 WantedBy=multi-user.target
 EOF
+
 
 # Enable and start the service
 echo "[5/5] Enabling and starting the service..."
