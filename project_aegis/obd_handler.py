@@ -9,11 +9,13 @@ import time
 from config import OBD_USB_PORT, OBD_BAUD_RATE, OBD_TIMEOUT
 
 class OBDHandler:
-    def __init__(self):
+    def __init__(self, onHardDisconnect = None):
         self.connection, self.connection_status = self.connect_obd()
         self.last_rpm_value = 0
         self.last_throttle_value = 0
         self.statusCounter = 0  # Counter to detect ignition off
+        self.failedReconnects = 0
+        self.onHardDisconnect = onHardDisconnect
 
     def connect_obd(self):
         """Establish OBD Connection via USB"""
@@ -31,17 +33,27 @@ class OBDHandler:
         self.connection, self.connection_status = self.connect_obd()
 
         if not self.connection:
-            self.connection_status = 'DISCONNECTED'
-        return self.connection_status
+            self.failedReconnects += 1
+            if self.failedReconnects >= 5:
+                if self.onHardDisconnect:
+                    self.onHardDisconnect()
+            return False
+        else:
+            self.failedReconnects = 0
+            return True
+
+    def check_connection(self):
+        if not self.connection or not self.connection.is_connected():
+            while not self.connection or not self.connection.is_connected():
+                print("OBD connection lost, attempting to reconnect...")
+                self.reconnect()
+                time.sleep(5)
+        return True
+
 
     def get_data(self):
-        """Queries RPM and Throttle Position, handling null responses & detecting ignition off"""
-        if not self.connection or not self.connection.is_connected():
-            self.connection_status = self.reconnect()
-            if self.connection_status == 'DISCONNECTED':
-                return 0, 0, 'DISCONNECTED'
-
-            self.connection_status = 'CONNECTING'
+        """Queries RPM and Throttle Position, handling stuck RPM response & auto-reconnect"""
+        self.check_connection()
 
         rpm_cmd = obd.commands.RPM
         throttle_cmd = obd.commands.THROTTLE_POS
@@ -53,17 +65,20 @@ class OBDHandler:
         rpm_value = rpm_resp.value.magnitude if rpm_resp and rpm_resp.value else self.last_rpm_value
         throttle_value = throttle_resp.value.magnitude if throttle_resp and throttle_resp.value else self.last_throttle_value
 
-        # Track ignition off state
-        if rpm_resp.is_null():
-            self.statusCounter += 1  # Increment if null response occurs
+        # Detect ignition off via 25 repeated RPM values
+        if rpm_value == self.last_rpm_value:
+            self.statusCounter += 1
         else:
-            self.statusCounter = 0  # Reset if valid RPM is read
+            self.statusCounter = 0
+        self.last_rpm_value = rpm_value
 
-        # Update stored values
-        self.last_rpm_value, self.last_throttle_value = rpm_value, throttle_value
+        if throttle_resp and not throttle_resp.is_null():
+            self.last_throttle_value = throttle_value
 
-        # If RPM is null for 25 cycles, assume ignition is off
+
         if self.statusCounter >= 25:
-            return 0, 0, 'IGNITION_OFF'
+            self.check_connection()
+            self.statusCounter = 0
 
         return int(rpm_value), float(throttle_value), self.connection_status
+
