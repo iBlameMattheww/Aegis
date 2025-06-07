@@ -3,6 +3,16 @@
 
 echo "[Reactive Badge Installer] Starting installation..."
 
+# [0/5] Clone or pull latest code
+if [ -d "/home/pi/Aegis" ]; then
+    echo "[0/5] Pulling latest code from GitHub..."
+    cd /home/pi/Aegis
+    git pull
+else
+    echo "[0/5] Cloning project from GitHub..."
+    git clone https://github.com/iBlameMattheww/Aegis.git /home/pi/Aegis
+fi
+
 # [1/5] Update and install dependencies
 echo "[1/5] Updating package lists and installing dependencies..."
 sudo apt update && sudo apt install -y python3-pip python3-venv git
