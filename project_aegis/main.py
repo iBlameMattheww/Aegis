@@ -13,9 +13,10 @@ from ui_controller import UIController
 from config import UPDATE_INTERVAL
 
 def main():
+    ui = UIController()
     obd = OBDHandler()
     leds = LEDController()
-    ui = UIController()
+    
 
     
     while True:
