@@ -9,13 +9,26 @@ import time
 from config import OBD_USB_PORT, OBD_BAUD_RATE, OBD_TIMEOUT
 
 class OBDHandler:
-    def __init__(self, onHardDisconnect = None):
-        self.connection, self.connection_status = self.connect_obd()
+    def __init__(self, onHardDisconnect=None):
+        self.connection = None
+        self.connection_status = 'DISCONNECTED'
         self.last_rpm_value = 0
         self.last_throttle_value = 0
-        self.statusCounter = 0  # Counter to detect ignition off
+        self.statusCounter = 0
         self.failedReconnects = 0
         self.onHardDisconnect = onHardDisconnect
+
+        # Initial connection loop
+        while not self.connection:
+            self.connection, self.connection_status = self.connect_obd()
+            if self.connection:
+                break
+            print("Initial OBD connection failed. Retrying...")
+            time.sleep(3)
+
+
+        if not self.connection and self.onHardDisconnect:
+            self.onHardDisconnect()
 
     def connect_obd(self):
         """Establish OBD Connection via USB"""
