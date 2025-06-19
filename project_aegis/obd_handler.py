@@ -33,7 +33,8 @@ class OBDHandler:
                 print("Triggering hard disconnect state.")
                 if self.onHardDisconnect:
                     self.onHardDisconnect()
-                break  # Exit the loop so program can continue even if not connected
+                self.connection_status = 'DISCONNECTED'
+                break
 
     def connect_obd(self):
         """Establish OBD Connection via USB"""
