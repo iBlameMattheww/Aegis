@@ -18,20 +18,14 @@ def main():
     leds = LEDController()
 
     while True:
-        try:
-            rpm, throttle, connection_status = obd.get_data()
-        except Exception as e:
-            print(f"[main loop] OBD error: {e}")
-            rpm = 0
-            throttle = 0
-            connection_status = False
-
+        rpm, throttle, connection_status = obd.get_data()
         brightness = BrightnessCalculator.calculate_brightness(rpm, throttle)
 
-        leds.update(brightness)                     # Should still run even without OBD
-        ui.update(connection_status, brightness)    # LED & buzzer should still work
+        leds.update(brightness)
+        ui.update(connection_status, brightness)
 
         time.sleep(UPDATE_INTERVAL)
+
 
 
 
