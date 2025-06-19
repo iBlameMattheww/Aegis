@@ -14,7 +14,9 @@ from config import UPDATE_INTERVAL
 
 def main():
     ui = UIController()
-    obd = OBDHandler()
+    def handle_disconnect():
+        ui.hard_disconnect_state = True
+    obd = OBDHandler(onHardDisconnect=handle_disconnect)
     leds = LEDController()
     
 
