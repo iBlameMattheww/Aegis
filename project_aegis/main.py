@@ -14,22 +14,25 @@ from config import UPDATE_INTERVAL
 
 def main():
     ui = UIController()
-    def handle_disconnect():
-        ui.hard_disconnect_state = True
-    obd = OBDHandler(onHardDisconnect=handle_disconnect)
+    obd = OBDHandler()
     leds = LEDController()
-    
 
-    
     while True:
-        rpm, throttle, connection_status = obd.get_data()
+        try:
+            rpm, throttle, connection_status = obd.get_data()
+        except Exception as e:
+            print(f"[main loop] OBD error: {e}")
+            rpm = 0
+            throttle = 0
+            connection_status = False
+
         brightness = BrightnessCalculator.calculate_brightness(rpm, throttle)
 
-        leds.update(brightness)  # Adjust LED brightness
-        ui.update(connection_status, brightness)  # Update UI elements (buzzer & LED)
+        leds.update(brightness)                     # Should still run even without OBD
+        ui.update(connection_status, brightness)    # LED & buzzer should still work
 
-        print(f"UI Update | status: {connection_status}, brightness: {brightness}")
         time.sleep(UPDATE_INTERVAL)
+
 
 
 
