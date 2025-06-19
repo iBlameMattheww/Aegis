@@ -14,15 +14,20 @@ from config import UPDATE_INTERVAL
 
 def main():
     ui = UIController()
+    obd = OBDHandler()
+    leds = LEDController()
+    
 
-    # Simulate startup flashing
-    ui.update('CONNECTING', 0)
-    time.sleep(2)
-
-    # Simulate normal operation
+    
     while True:
-        ui.update('CONNECTED', 75)  # should keep LED ON, buzzer OFF
-        time.sleep(1)
+        rpm, throttle, connection_status = obd.get_data()
+        brightness = BrightnessCalculator.calculate_brightness(rpm, throttle)
+
+        leds.update(brightness)  # Adjust LED brightness
+        ui.update(connection_status, brightness)  # Update UI elements (buzzer & LED)
+
+        print(f"UI Update | status: {connection_status}, brightness: {brightness}")
+        time.sleep(UPDATE_INTERVAL)
 
 
 
