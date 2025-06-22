@@ -1,76 +1,60 @@
 #!/bin/bash
 
-echo "[Reactive Badge Installer] Starting installation..."
+set -e
 
-# 0. Remove existing Aegis folder if it exists
-if [ -d "$HOME/Aegis" ]; then
-    echo "[0/6] Removing old Aegis installation..."
-    rm -rf "$HOME/Aegis"
-fi
+echo "=== Reactive Badge Installer ==="
 
-# 1. Clone the GitHub repo
-echo "[1/6] Cloning Aegis repo from GitHub..."
-git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis"
+echo ">> Removing old Aegis repo..."
+rm -rf ~/Aegis
 
-cd "$HOME/Aegis/project_aegis" || {
-    echo "❌ Error: Failed to enter project_aegis directory."
-    exit 1
-}
+echo ">> Cloning fresh repo..."
+git clone https://github.com/iBlameMattheww/Aegis.git ~/Aegis
 
-# 2. Install system packages
-echo "[2/6] Updating package lists and installing system dependencies..."
+echo ">> Installing system dependencies..."
 sudo apt update
-sudo apt install -y python3-pip python3-venv git
+sudo apt install -y python3 python3-pip python3-venv git
 
-# 3. Set up Python environment
-if [ ! -d "venv" ]; then
-    echo "[3/6] Creating virtual environment..."
-    python3 -m venv venv
-fi
+echo ">> Removing old virtual environment if it exists..."
+rm -rf ~/Aegis/project_aegis/venv
 
-echo "[3.5/6] Installing Python dependencies..."
-source venv/bin/activate
+echo ">> Creating new virtual environment..."
+python3 -m venv ~/Aegis/project_aegis/venv
+source ~/Aegis/project_aegis/venv/bin/activate
+
+echo ">> Installing required Python packages..."
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r ~/Aegis/project_aegis/requirements.txt
 
-# 4. Clean up GPIO conflicts
-echo "[4/6] Cleaning up GPIO conflicts..."
-pip uninstall -y Jetson.GPIO rpi_gpio || true
+echo ">> Removing Jetson-only packages if installed..."
+pip uninstall -y Jetson.GPIO rpi_ws281x adafruit-circuitpython-neopixel || true
 
-# 5. Force Blinka to use Raspberry Pi GPIO
-echo "[5/6] Forcing Blinka to use Raspberry Pi GPIO..."
-if ! grep -q "BLINKA_FORCECHIP=BCM2XXX" ~/.bashrc; then
-    echo 'export BLINKA_FORCECHIP=BCM2XXX' >> ~/.bashrc
-fi
-export BLINKA_FORCECHIP=BCM2XXX  # For current shell session
+echo ">> Installing Raspberry Pi compatible GPIO packages..."
+pip install RPi.GPIO adafruit-blinka adafruit-circuitpython-neopixel
 
-# 6. Setup systemd service
-echo "[6/6] Setting up systemd service..."
-
-SERVICE_FILE="/etc/systemd/system/project_aegis.service"
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+echo ">> Creating systemd service file..."
+sudo tee /etc/systemd/system/project_aegis.service > /dev/null <<EOF
 [Unit]
 Description=Reactive Badge Startup
 After=network.target
 
 [Service]
-ExecStart=$HOME/Aegis/project_aegis/venv/bin/python3 $HOME/Aegis/project_aegis/main.py
-WorkingDirectory=$HOME/Aegis/project_aegis
-StandardOutput=inherit
-StandardError=inherit
+ExecStart=/home/pi/Aegis/project_aegis/venv/bin/python3 /home/pi/Aegis/project_aegis/main.py
+WorkingDirectory=/home/pi/Aegis/project_aegis
 Restart=always
-User=pi
-Environment=BLINKA_FORCECHIP=BCM2XXX
+User=root
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+echo ">> Reloading and enabling systemd service..."
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
-echo "[✅] Installation complete. Use 'sudo systemctl status project_aegis.service' to check the status."
+echo "✅ Reactive Badge installed and running!"
+
 
 
