@@ -1,40 +1,44 @@
 #!/bin/bash
 
-echo "[Reactive Badge Installer] Starting clean install..."
+echo "[Reactive Badge Installer] Starting installation..."
 
-# 1. Remove existing Aegis software
-echo "[1/5] Removing old Aegis directory if it exists..."
+# 0. Clean existing Aegis install
+echo "[0/5] Removing old Aegis directory (if exists)..."
 rm -rf "$HOME/Aegis"
 
-# 2. Clone the GitHub repo
-echo "[2/5] Cloning Aegis repo from GitHub..."
-git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis"
-
-cd "$HOME/Aegis/project_aegis" || {
-    echo "Error: Failed to enter project_aegis directory."
+# Clone repo
+echo "[1/5] Cloning Aegis repo..."
+git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis" || {
+    echo "Failed to clone repo. Exiting."
     exit 1
 }
 
-# 3. Install required system packages
-echo "[3/5] Installing system packages..."
+cd "$HOME/Aegis/project_aegis" || {
+    echo "Failed to enter project_aegis dir."
+    exit 1
+}
+
+# 2. Install dependencies
+echo "[2/5] Installing system packages..."
 sudo apt update
 sudo apt install -y python3-pip python3-venv git
 
-# Create virtual environment
+# 3. Setup venv and install Python packages
+echo "[3/5] Setting up Python virtual environment..."
 python3 -m venv venv
 source venv/bin/activate
-
-# Install Python packages
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install rpi_ws281x adafruit-blinka
 
-# 4. Remove Jetson references from Blinka
-echo "[4/5] Removing Jetson references..."
-find venv/lib/python3.11/site-packages/adafruit_blinka -type f -name "*.py" -exec sed -i '/Jetson/d' {} +
-find venv/lib/python3.11/site-packages -type d -name "Jetson" -exec rm -rf {} +
+# 4. Force Blinka to use Pi GPIO
+echo "[4/5] Configuring Blinka for Pi GPIO..."
+if ! grep -q "BLINKA_FORCECHIP=BCM2XXX" ~/.bashrc; then
+    echo 'export BLINKA_FORCECHIP=BCM2XXX' >> ~/.bashrc
+fi
+export BLINKA_FORCECHIP=BCM2XXX
 
-# 5. Set up systemd service
-echo "[5/5] Setting up systemd service..."
+# 5. Setup systemd service
+echo "[5/5] Creating systemd service..."
 
 SERVICE_FILE="/etc/systemd/system/project_aegis.service"
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
@@ -59,6 +63,5 @@ sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
-echo "Reactive Badge installation complete."
-echo "Use 'sudo systemctl status project_aegis.service' to check the service status."
+echo "[✅] Installation complete. Use 'sudo systemctl status project_aegis.service' to check the status."
 
