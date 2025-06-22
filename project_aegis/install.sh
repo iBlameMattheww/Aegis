@@ -15,15 +15,16 @@ sudo apt-get install -y \
   python3 \
   python3-venv \
   python3-pip \
+  python3-dev \
+  python3-rpi.gpio \
   git \
-  build-essential \
-  python3-dev
+  build-essential
 
 echo ">> Removing old virtual environment..."
 rm -rf "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Creating Python virtual environment..."
-python3 -m venv "${HOME}/Aegis/project_aegis/venv"
+echo ">> Creating Python virtual environment (with access to system site-packages)..."
+python3 -m venv --system-site-packages "${HOME}/Aegis/project_aegis/venv"
 
 echo ">> Activating virtual environment and upgrading pip..."
 # shellcheck disable=SC1090
@@ -35,9 +36,6 @@ pip uninstall -y Jetson.GPIO RPi.GPIO || true
 
 echo ">> Installing project requirements..."
 pip install -r "${HOME}/Aegis/project_aegis/requirements.txt"
-
-echo ">> Installing the distro RPi.GPIO support..."
-sudo apt-get install -y python3-rpi.gpio
 
 echo ">> Installing Blinka & NeoPixel via pip..."
 pip install \
@@ -68,5 +66,4 @@ sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
 echo "✅ Reactive Badge installation complete!"
-
 
