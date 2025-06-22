@@ -2,51 +2,51 @@
 
 echo "[Reactive Badge Installer] Starting installation..."
 
-echo "[0/5] Pulling latest code from GitHub..."
-if [ ! -d "$HOME/Aegis" ]; then
-    git clone https://github.com/iBlameMattheww/Aegis.git $HOME/Aegis
+echo "[0/6] Cloning repo to ~/Aegis..."
+INSTALL_DIR="$HOME/Aegis"
+if [ ! -d "$INSTALL_DIR" ]; then
+    git clone https://github.com/iBlameMattheww/Aegis.git "$INSTALL_DIR"
 else
-    cd $HOME/Aegis
+    cd "$INSTALL_DIR"
     git pull
 fi
 
-echo "[1/5] Updating package lists and installing dependencies..."
+echo "[1/6] Installing system dependencies..."
 sudo apt update
 sudo apt install -y python3-pip python3-venv git
 
-echo "[2/5] Setting up Python virtual environment..."
-cd $HOME/Aegis/project_aegis
+echo "[2/6] Setting up Python virtual environment..."
+PROJECT_DIR="$INSTALL_DIR/project_aegis"
+cd "$PROJECT_DIR"
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install obd RPi.GPIO
+pip install obd RPi.GPIO adafruit-blinka
 
-echo "[3/5] Creating systemd service..."
-SERVICE_FILE="/etc/systemd/system/project_aegis.service"
-
-sudo bash -c "cat > $SERVICE_FILE" <<EOL
+echo "[3/6] Creating systemd service..."
+SERVICE_PATH="/etc/systemd/system/project_aegis.service"
+sudo tee "$SERVICE_PATH" > /dev/null <<EOL
 [Unit]
 Description=Reactive Badge Startup
-After=multi-user.target
+After=network.target
 
 [Service]
-ExecStart=$HOME/Aegis/project_aegis/venv/bin/python3 $HOME/Aegis/project_aegis/main.py
-WorkingDirectory=$HOME/Aegis/project_aegis
-StandardOutput=inherit
-StandardError=inherit
-Restart=always
+Type=simple
 User=pi
+WorkingDirectory=$PROJECT_DIR
+ExecStart=$PROJECT_DIR/venv/bin/python3 $PROJECT_DIR/main.py
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOL
 
-echo "[4/5] Enabling service to run on boot..."
+echo "[4/6] Reloading systemd and enabling service..."
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 
-echo "[5/5] Starting service..."
-sudo systemctl start project_aegis.service
+echo "[5/6] Starting project_aegis service..."
+sudo systemctl restart project_aegis.service
 
-echo "[✅] Installation complete. Check status with: sudo systemctl status project_aegis.service"
+echo "[✅] Done. View logs with: sudo journalctl -u project_aegis.service -e"
