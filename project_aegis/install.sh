@@ -23,23 +23,24 @@ sudo apt-get install -y \
 echo ">> Removing old virtual environment..."
 rm -rf "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Creating Python virtual environment (with system packages)..."
-python3 -m venv --system-site-packages "${HOME}/Aegis/project_aegis/venv"
+echo ">> Creating Python virtual environment..."
+python3 -m venv "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Activating virtual environment and upgrading pip..."
+echo ">> Activating virtual environment..."
 # shellcheck disable=SC1090
 source "${HOME}/Aegis/project_aegis/venv/bin/activate"
 pip install --upgrade pip
 
-echo ">> Purging any pip-installed Jetson.GPIO & RPi.GPIO..."
+echo ">> Uninstalling any pip-installed Jetson.GPIO & RPi.GPIO..."
 pip uninstall -y Jetson.GPIO RPi.GPIO || true
-
-# remove any leftovers in venv site-packages
-SITE_PKG=$(python -c "import sysconfig; print(sysconfig.get_path('purelib'))")
-rm -rf "${SITE_PKG}/Jetson" "${SITE_PKG}/Jetson.GPIO*" "${SITE_PKG}/RPi"
 
 echo ">> Installing project requirements..."
 pip install -r "${HOME}/Aegis/project_aegis/requirements.txt"
+
+echo ">> Symlinking system RPi.GPIO into venv..."
+VENV_SITE="$HOME/Aegis/project_aegis/venv/lib/python3.11/site-packages"
+rm -rf "${VENV_SITE}/RPi" "${VENV_SITE}/RPi.GPIO*"
+ln -s /usr/lib/python3/dist-packages/RPi "${VENV_SITE}/RPi"
 
 echo ">> Installing Blinka & NeoPixel via pip..."
 pip install \
@@ -69,4 +70,5 @@ sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
-echo "Reactive Badge installation complete!"
+echo "✅ Reactive Badge installation complete!"
+
