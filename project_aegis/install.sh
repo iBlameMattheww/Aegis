@@ -25,20 +25,22 @@ rm -rf "${HOME}/Aegis/project_aegis/venv"
 echo ">> Creating Python virtual environment..."
 python3 -m venv "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Activating virtual environment and installing Python dependencies..."
+echo ">> Activating virtual environment and upgrading pip..."
 # shellcheck disable=SC1090
 source "${HOME}/Aegis/project_aegis/venv/bin/activate"
 pip install --upgrade pip
 
-echo ">> Uninstalling any Jetson.GPIO remnants..."
-pip uninstall -y Jetson.GPIO || true
+echo ">> Uninstalling any Jetson.GPIO / pip-installed RPi.GPIO remnants..."
+pip uninstall -y Jetson.GPIO RPi.GPIO || true
 
 echo ">> Installing project requirements..."
 pip install -r "${HOME}/Aegis/project_aegis/requirements.txt"
 
-echo ">> Installing Raspberry Pi GPIO & NeoPixel support..."
+echo ">> Installing the distro RPi.GPIO support..."
+sudo apt-get install -y python3-rpi.gpio
+
+echo ">> Installing Blinka & NeoPixel via pip..."
 pip install \
-  RPi.GPIO \
   adafruit-blinka \
   adafruit-circuitpython-neopixel
 
@@ -53,6 +55,7 @@ After=network.target
 WorkingDirectory=${HOME}/Aegis/project_aegis
 ExecStart=${HOME}/Aegis/project_aegis/venv/bin/python3 ${HOME}/Aegis/project_aegis/main.py
 Restart=always
+User=root
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
