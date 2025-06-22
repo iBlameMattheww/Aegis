@@ -3,38 +3,34 @@
 
 echo "[Reactive Badge Installer] Starting installation..."
 
-# [0/6] Remove any old installation
+# [0/5] Clone or pull latest code
 if [ -d "/home/pi/Aegis" ]; then
-    echo "[0/6] Removing existing Aegis directory..."
-    rm -rf /home/pi/Aegis
+    echo "[0/5] Pulling latest code from GitHub..."
+    cd /home/pi/Aegis
+    git pull
+else
+    echo "[0/5] Cloning project from GitHub..."
+    git clone https://github.com/iBlameMattheww/Aegis.git /home/pi/Aegis
 fi
 
-# [1/6] Clone fresh code from GitHub
-echo "[1/6] Cloning project from GitHub..."
-git clone https://github.com/iBlameMattheww/Aegis.git /home/pi/Aegis
-
-# [2/6] Update and install system dependencies
-echo "[2/6] Installing system dependencies..."
+# [1/5] Update and install dependencies
+echo "[1/5] Updating package lists and installing dependencies..."
 sudo apt update && sudo apt install -y python3-pip python3-venv git
 
-# [3/6] Set up virtual environment
-echo "[3/6] Creating Python virtual environment..."
+# [2/5] Set up virtual environment and activate it
+echo "[2/5] Creating virtual environment..."
 cd /home/pi/Aegis/project_aegis
 python3 -m venv venv
 source venv/bin/activate
 
-# [4/6] Install required Python packages
-echo "[4/6] Installing Python packages..."
+# [3/5] Install required Python packages
+echo "[3/5] Installing required Python packages..."
 pip install --upgrade pip
 pip install rpi_ws281x adafruit-circuitpython-neopixel adafruit-blinka obd RPi.GPIO
 
-# Remove Jetson.GPIO if Blinka installed it (prevents crash)
-pip uninstall -y Jetson.GPIO || true
-
-# [5/6] Create systemd service
-echo "[5/6] Setting up systemd service..."
+# [4/5] Create systemd service
+echo "[4/5] Setting up systemd service..."
 SERVICE_PATH="/etc/systemd/system/project_aegis.service"
-CURRENT_USER=$(whoami)
 
 sudo bash -c "cat > $SERVICE_PATH" <<EOF
 [Unit]
@@ -47,18 +43,18 @@ WorkingDirectory=/home/pi/Aegis/project_aegis
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
-User=$CURRENT_USER
+User=pi
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# [6/6] Enable and start the service
-echo "[6/6] Enabling and starting systemd service..."
+# [5/5] Enable service and reboot
+echo "[5/5] Enabling and starting service..."
+sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl start project_aegis.service
 
-# Final step: reboot to cleanly restart everything
-echo "[Reactive Badge Installer] Setup complete. Rebooting..."
+echo "[Reactive Badge Installer] Installation completed successfully. Rebooting..."
 sudo reboot
