@@ -2,46 +2,54 @@
 
 echo "[Reactive Badge Installer] Starting installation..."
 
-# 0. Clean existing Aegis install
-echo "[0/5] Removing old Aegis directory (if exists)..."
-rm -rf "$HOME/Aegis"
+# 0. Remove existing Aegis folder if it exists
+if [ -d "$HOME/Aegis" ]; then
+    echo "[0/6] Removing old Aegis installation..."
+    rm -rf "$HOME/Aegis"
+fi
 
-# Clone repo
-echo "[1/5] Cloning Aegis repo..."
-git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis" || {
-    echo "Failed to clone repo. Exiting."
-    exit 1
-}
+# 1. Clone the GitHub repo
+echo "[1/6] Cloning Aegis repo from GitHub..."
+git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis"
 
 cd "$HOME/Aegis/project_aegis" || {
-    echo "Failed to enter project_aegis dir."
+    echo "❌ Error: Failed to enter project_aegis directory."
     exit 1
 }
 
-# 2. Install dependencies
-echo "[2/5] Installing system packages..."
+# 2. Install system packages
+echo "[2/6] Updating package lists and installing system dependencies..."
 sudo apt update
 sudo apt install -y python3-pip python3-venv git
 
-# 3. Setup venv and install Python packages
-echo "[3/5] Setting up Python virtual environment..."
-python3 -m venv venv
+# 3. Set up Python environment
+if [ ! -d "venv" ]; then
+    echo "[3/6] Creating virtual environment..."
+    python3 -m venv venv
+fi
+
+echo "[3.5/6] Installing Python dependencies..."
 source venv/bin/activate
 pip install --upgrade pip
-pip install rpi_ws281x adafruit-blinka
+pip install -r requirements.txt
+pip install obd RPi.GPIO
 
-# 4. Force Blinka to use Pi GPIO
-echo "[4/5] Configuring Blinka for Pi GPIO..."
+# 4. Remove Jetson.GPIO if accidentally installed
+echo "[4/6] Ensuring Jetson.GPIO is not installed..."
+pip uninstall -y Jetson.GPIO || true
+
+# 5. Force Blinka to Raspberry Pi GPIO
+echo "[5/6] Forcing Blinka to use Raspberry Pi GPIO..."
 if ! grep -q "BLINKA_FORCECHIP=BCM2XXX" ~/.bashrc; then
     echo 'export BLINKA_FORCECHIP=BCM2XXX' >> ~/.bashrc
 fi
-export BLINKA_FORCECHIP=BCM2XXX
+export BLINKA_FORCECHIP=BCM2XXX  # Current session
 
-# 5. Setup systemd service
-echo "[5/5] Creating systemd service..."
+# 6. Setup systemd service
+echo "[6/6] Setting up systemd service..."
 
 SERVICE_FILE="/etc/systemd/system/project_aegis.service"
-sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=Reactive Badge Startup
 After=network.target
@@ -53,6 +61,7 @@ StandardOutput=inherit
 StandardError=inherit
 Restart=always
 User=pi
+Environment=BLINKA_FORCECHIP=BCM2XXX
 
 [Install]
 WantedBy=multi-user.target
