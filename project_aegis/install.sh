@@ -32,18 +32,17 @@ echo "[3.5/6] Installing Python dependencies..."
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install obd RPi.GPIO
 
-# 4. Remove Jetson.GPIO if accidentally installed
-echo "[4/6] Ensuring Jetson.GPIO is not installed..."
-pip uninstall -y Jetson.GPIO || true
+# 4. Clean up GPIO conflicts
+echo "[4/6] Cleaning up GPIO conflicts..."
+pip uninstall -y Jetson.GPIO rpi_gpio || true
 
-# 5. Force Blinka to Raspberry Pi GPIO
+# 5. Force Blinka to use Raspberry Pi GPIO
 echo "[5/6] Forcing Blinka to use Raspberry Pi GPIO..."
 if ! grep -q "BLINKA_FORCECHIP=BCM2XXX" ~/.bashrc; then
     echo 'export BLINKA_FORCECHIP=BCM2XXX' >> ~/.bashrc
 fi
-export BLINKA_FORCECHIP=BCM2XXX  # Current session
+export BLINKA_FORCECHIP=BCM2XXX  # For current shell session
 
 # 6. Setup systemd service
 echo "[6/6] Setting up systemd service..."
@@ -73,4 +72,5 @@ sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
 echo "[✅] Installation complete. Use 'sudo systemctl status project_aegis.service' to check the status."
+
 
