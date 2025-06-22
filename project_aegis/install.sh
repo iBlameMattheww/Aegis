@@ -1,49 +1,43 @@
 #!/bin/bash
 
-echo "[Reactive Badge Installer] Starting installation..."
+echo "[Reactive Badge Installer] Starting clean install..."
 
-# 0. Clone the GitHub repo if it doesn't already exist
-if [ ! -d "$HOME/Aegis" ]; then
-    echo "[0/5] Cloning Aegis repo from GitHub..."
-    git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis"
-else
-    echo "[0/5] Repo already exists. Skipping clone..."
-fi
+# 1. Remove existing Aegis software
+echo "[1/5] Removing old Aegis directory if it exists..."
+rm -rf "$HOME/Aegis"
+
+# 2. Clone the GitHub repo
+echo "[2/5] Cloning Aegis repo from GitHub..."
+git clone https://github.com/iBlameMattheww/Aegis.git "$HOME/Aegis"
 
 cd "$HOME/Aegis/project_aegis" || {
     echo "Error: Failed to enter project_aegis directory."
     exit 1
 }
 
-# 1. Install required packages
-echo "[1/5] Updating package lists and installing dependencies..."
+# 3. Install required system packages
+echo "[3/5] Installing system packages..."
 sudo apt update
 sudo apt install -y python3-pip python3-venv git
 
-# 2. Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "[2/5] Creating Python virtual environment..."
-    python3 -m venv venv
-fi
-
-# 3. Activate and install Python dependencies
-echo "[3/5] Installing Python packages..."
+# Create virtual environment
+python3 -m venv venv
 source venv/bin/activate
+
+# Install Python packages
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Force Blinka to Raspberry Pi GPIO
-echo "[4/5] Forcing Blinka to use Raspberry Pi GPIO..."
-if ! grep -q "BLINKA_FORCECHIP=BCM2XXX" ~/.bashrc; then
-    echo 'export BLINKA_FORCECHIP=BCM2XXX' >> ~/.bashrc
-fi
-export BLINKA_FORCECHIP=BCM2XXX  # For current session
+# 4. Remove Jetson references from Blinka
+echo "[4/5] Removing Jetson references..."
+find venv/lib/python3.11/site-packages/adafruit_blinka -type f -name "*.py" -exec sed -i '/Jetson/d' {} +
+find venv/lib/python3.11/site-packages -type d -name "Jetson" -exec rm -rf {} +
 
 # 5. Set up systemd service
-echo "[5/5] Setting up project_aegis systemd service..."
+echo "[5/5] Setting up systemd service..."
 
 SERVICE_FILE="/etc/systemd/system/project_aegis.service"
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Reactive Badge Startup
 After=network.target
@@ -65,4 +59,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
-echo "[✅] Installation complete. Use 'sudo systemctl status project_aegis.service' to check the status."
+echo "Reactive Badge installation complete."
+echo "Use 'sudo systemctl status project_aegis.service' to check the service status."
+
