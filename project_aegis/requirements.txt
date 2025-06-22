@@ -1,3 +1,4 @@
 obd
 adafruit-blinka
-rpi-ws281x
+rpi_ws281x
+adafruit-circuitpython-neopixel
