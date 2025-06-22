@@ -6,7 +6,7 @@ Created on Mon Feb 10 01:52:18 2025
 from time import sleep
 import RPi.GPIO as GPIO
 from config import BUZZER_PIN, LED_INDICATOR_PIN
-  
+
 
 class UIController:
     def __init__(self):
@@ -18,20 +18,25 @@ class UIController:
     def update(self, connection_status, brightness):
         """Manages LED and buzzer based on system state."""
         if self.hard_disconnect_state:
-            # Permanent alert until system reset
             GPIO.output(BUZZER_PIN, GPIO.HIGH)
             GPIO.output(LED_INDICATOR_PIN, GPIO.HIGH)
             return
 
-        elif connection_status == 'CONNECTING':
-            for _ in range(5):
+        if connection_status == 'RECONNECTING':
+            for _ in range(3):
                 GPIO.output(BUZZER_PIN, GPIO.HIGH)
                 GPIO.output(LED_INDICATOR_PIN, GPIO.HIGH)
                 sleep(0.1)
                 GPIO.output(BUZZER_PIN, GPIO.LOW)
                 GPIO.output(LED_INDICATOR_PIN, GPIO.LOW)
-            GPIO.output(LED_INDICATOR_PIN, GPIO.LOW)
+                sleep(0.1)
+            return
 
-        else:
+        elif connection_status == 'DISCONNECTED':
+            GPIO.output(BUZZER_PIN, GPIO.HIGH)
+            GPIO.output(LED_INDICATOR_PIN, GPIO.HIGH)
+            return
+
+        elif connection_status == 'CONNECTED':
             GPIO.output(BUZZER_PIN, GPIO.LOW)
             GPIO.output(LED_INDICATOR_PIN, GPIO.HIGH if brightness > 0 else GPIO.LOW)
