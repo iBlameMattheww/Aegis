@@ -23,6 +23,8 @@ def main():
 
         leds.update(brightness)
         ui.update(connection_status, brightness)
+        print(f"Status: {connection_status}, RPM: {rpm}, Throttle: {throttle}")
+
 
         time.sleep(UPDATE_INTERVAL)
 
