@@ -4,14 +4,16 @@
 echo "[Reactive Badge Installer] Starting installation..."
 
 # [0/5] Clone or pull latest code
-if [ -d "/home/pi/Aegis" ]; then
+if [ -d "/home/pi/Aegis/.git" ]; then
     echo "[0/5] Pulling latest code from GitHub..."
     cd /home/pi/Aegis
     git pull
 else
     echo "[0/5] Cloning project from GitHub..."
+    sudo rm -rf /home/pi/Aegis  # Clean up just in case
     git clone https://github.com/iBlameMattheww/Aegis.git /home/pi/Aegis
 fi
+
 
 # [1/5] Update and install dependencies
 echo "[1/5] Updating package lists and installing dependencies..."
@@ -24,9 +26,12 @@ python3 -m venv venv
 source venv/bin/activate
 
 # [3/5] Install required Python packages
+# [3/5] Install required Python packages
 echo "[3/5] Installing required Python packages..."
 pip install --upgrade pip
+export BLINKA_FORCEBOARD=raspberrypi
 pip install rpi_ws281x adafruit-circuitpython-neopixel adafruit-blinka obd RPi.GPIO
+
 
 # [4/5] Create systemd service
 echo "[4/5] Setting up systemd service..."
