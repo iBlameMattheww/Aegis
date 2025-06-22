@@ -1,60 +1,69 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "=== Reactive Badge Installer ==="
 
-echo ">> Removing old Aegis repo..."
-rm -rf ~/Aegis
+echo ">> Removing old Aegis directory..."
+rm -rf "${HOME}/Aegis"
 
-echo ">> Cloning fresh repo..."
-git clone https://github.com/iBlameMattheww/Aegis.git ~/Aegis
+echo ">> Cloning Aegis repository..."
+git clone --depth 1 https://github.com/iBlameMattheww/Aegis.git "${HOME}/Aegis"
 
-echo ">> Installing system dependencies..."
-sudo apt update
-sudo apt install -y python3 python3-pip python3-venv git
+echo ">> Installing system packages..."
+sudo apt-get update
+sudo apt-get install -y \
+  python3 \
+  python3-venv \
+  python3-pip \
+  git \
+  build-essential \
+  python3-dev
 
-echo ">> Removing old virtual environment if it exists..."
-rm -rf ~/Aegis/project_aegis/venv
+echo ">> Removing old virtual environment..."
+rm -rf "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Creating new virtual environment..."
-python3 -m venv ~/Aegis/project_aegis/venv
-source ~/Aegis/project_aegis/venv/bin/activate
+echo ">> Creating Python virtual environment..."
+python3 -m venv "${HOME}/Aegis/project_aegis/venv"
 
-echo ">> Installing required Python packages..."
+echo ">> Activating virtual environment and installing Python dependencies..."
+# shellcheck disable=SC1090
+source "${HOME}/Aegis/project_aegis/venv/bin/activate"
 pip install --upgrade pip
-pip install -r ~/Aegis/project_aegis/requirements.txt
 
-echo ">> Removing Jetson-only packages if installed..."
-pip uninstall -y Jetson.GPIO rpi_ws281x adafruit-circuitpython-neopixel || true
+echo ">> Uninstalling any Jetson.GPIO remnants..."
+pip uninstall -y Jetson.GPIO || true
 
-echo ">> Installing Raspberry Pi compatible GPIO packages..."
-pip install RPi.GPIO adafruit-blinka adafruit-circuitpython-neopixel
+echo ">> Installing project requirements..."
+pip install -r "${HOME}/Aegis/project_aegis/requirements.txt"
 
-echo ">> Creating systemd service file..."
-sudo tee /etc/systemd/system/project_aegis.service > /dev/null <<EOF
+echo ">> Installing Raspberry Pi GPIO & NeoPixel support..."
+pip install \
+  RPi.GPIO \
+  adafruit-blinka \
+  adafruit-circuitpython-neopixel
+
+echo ">> Writing systemd service file..."
+SERVICE_PATH="/etc/systemd/system/project_aegis.service"
+sudo tee "${SERVICE_PATH}" > /dev/null <<EOF
 [Unit]
 Description=Reactive Badge Startup
 After=network.target
 
 [Service]
-ExecStart=/home/pi/Aegis/project_aegis/venv/bin/python3 /home/pi/Aegis/project_aegis/main.py
-WorkingDirectory=/home/pi/Aegis/project_aegis
+WorkingDirectory=${HOME}/Aegis/project_aegis
+ExecStart=${HOME}/Aegis/project_aegis/venv/bin/python3 ${HOME}/Aegis/project_aegis/main.py
 Restart=always
-User=root
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-echo ">> Reloading and enabling systemd service..."
-sudo systemctl daemon-reexec
+echo ">> Reloading systemd, enabling & starting service..."
 sudo systemctl daemon-reload
 sudo systemctl enable project_aegis.service
 sudo systemctl restart project_aegis.service
 
-echo "✅ Reactive Badge installed and running!"
-
+echo "✅ Reactive Badge installation complete!"
 
 
